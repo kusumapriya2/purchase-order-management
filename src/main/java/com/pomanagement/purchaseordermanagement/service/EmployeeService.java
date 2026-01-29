@@ -6,7 +6,7 @@ import com.pomanagement.purchaseordermanagement.mapper.EmployeeMapper;
 import com.pomanagement.purchaseordermanagement.repository.EmployeeRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;

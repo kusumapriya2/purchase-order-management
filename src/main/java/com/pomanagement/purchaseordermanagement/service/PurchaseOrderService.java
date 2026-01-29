@@ -7,13 +7,13 @@ import com.pomanagement.purchaseordermanagement.repository.EmployeeRepo;
 import com.pomanagement.purchaseordermanagement.repository.ProductRepo;
 import com.pomanagement.purchaseordermanagement.repository.PurchaseOrderRepo;
 import com.pomanagement.purchaseordermanagement.repository.VendorRepo;
-import jakarta.persistence.metamodel.SingularAttribute;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.domain.AbstractPersistable;
+
 import org.springframework.stereotype.Service;
 
-import java.io.Serializable;
+
 import java.util.List;
 @Service
 @Slf4j

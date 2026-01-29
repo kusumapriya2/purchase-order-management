@@ -3,7 +3,7 @@ import com.pomanagement.purchaseordermanagement.dto.VendorDTO;
 import com.pomanagement.purchaseordermanagement.service.VendorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpEntity;
+
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import org.springframework.http.ResponseEntity;

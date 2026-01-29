@@ -4,11 +4,7 @@ import com.pomanagement.purchaseordermanagement.dto.ProductDTO;
 import com.pomanagement.purchaseordermanagement.entity.Product;
 import org.mapstruct.Mapper;
 
-import java.util.List;
 
-import com.pomanagement.purchaseordermanagement.dto.ProductDTO;
-import com.pomanagement.purchaseordermanagement.entity.Product;
-import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.factory.Mappers;
