@@ -2,10 +2,10 @@ package com.pomanagement.purchaseordermanagement.controller;
 
 import com.pomanagement.purchaseordermanagement.dto.EmployeeDTO;
 import com.pomanagement.purchaseordermanagement.entity.Employee;
+import com.pomanagement.purchaseordermanagement.response.ApiResponse;
 import com.pomanagement.purchaseordermanagement.service.EmployeeService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,33 +14,40 @@ import java.util.List;
 @RestController
 @RequestMapping("/employees")
 public class EmployeeController {
-    @Autowired EmployeeService employeeService;
 
+    @Autowired
+    private EmployeeService employeeService;
+
+    // CREATE EMPLOYEE
     @PostMapping("/create")
-    public ResponseEntity<ResponseEntity<EmployeeDTO>> createEmp(@RequestBody @Valid Employee employee){
-        return new ResponseEntity<>(employeeService.createEmployee(employee), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<EmployeeDTO>> createEmp(@RequestBody @Valid Employee employee) {
+        return employeeService.createEmployee(employee);
     }
 
+    // GET ALL EMPLOYEES
     @GetMapping("/all")
-    public ResponseEntity<List<Employee>> getAll(){
-        return ResponseEntity.ok((List<Employee>) employeeService.getAll());
+    public ResponseEntity<ApiResponse<List<EmployeeDTO>>> getAll() {
+        return employeeService.getAll();
     }
 
+    // GET BY ID
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseEntity<EmployeeDTO>> getById(@PathVariable Long id){
-        return ResponseEntity.ok(employeeService.getEmp(id));
-    }
-    @PutMapping("/update/{id}")
-    public EmployeeDTO updateEmp(
-            @PathVariable Long id,@Valid
-            @RequestBody EmployeeDTO dto
-    ) {
-        return employeeService.updateEmployee(id, dto).getBody();
+    public ResponseEntity<ApiResponse<EmployeeDTO>> getById(@PathVariable Long id) {
+        return employeeService.getEmp(id);
     }
 
+    // UPDATE EMPLOYEE
+    @PutMapping("/update/{id}")
+    public ResponseEntity<ApiResponse<EmployeeDTO>> updateEmp(
+            @PathVariable Long id,
+            @RequestBody @Valid EmployeeDTO dto
+    ) {
+        return employeeService.updateEmployee(id, dto);
+    }
+
+    // DELETE EMPLOYEE
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<String> deleteEmp(@PathVariable Long id){
-        employeeService.deleteEmp(id);
-        return ResponseEntity.ok("employee delete successfully");
+    public ResponseEntity<ApiResponse<Object>> deleteEmp(@PathVariable Long id) {
+        return employeeService.deleteEmp(id);
     }
 }

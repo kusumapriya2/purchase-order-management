@@ -4,10 +4,9 @@ import com.pomanagement.purchaseordermanagement.dto.VendorDTO;
 import com.pomanagement.purchaseordermanagement.entity.Vendor;
 import com.pomanagement.purchaseordermanagement.mapper.VendorMapper;
 import com.pomanagement.purchaseordermanagement.repository.VendorRepo;
+import com.pomanagement.purchaseordermanagement.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -25,83 +24,59 @@ public class VendorService {
     @Autowired
     private VendorMapper vendorMapper;
 
+
     // CREATE VENDOR
-    public ResponseEntity<VendorDTO> createVendor(VendorDTO dto) {
-        try {
-            log.info("Creating vendor {}", dto.getName());
-            Vendor vendor = vendorMapper.toEntity(dto);
-            Vendor saved = vendorRepo.save(vendor);
-            return new ResponseEntity<>(vendorMapper.toDto(saved), HttpStatus.CREATED);
-        } catch (Exception e) {
-            log.error("Error creating vendor", e);
-            return new ResponseEntity<>((HttpHeaders) null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<ApiResponse<VendorDTO>> createVendor(VendorDTO dto) {
+        Vendor saved = vendorRepo.save(vendorMapper.toEntity(dto));
+        return ResponseEntity.status(201)
+                .body(ApiResponse.success("Vendor created successfully", vendorMapper.toDto(saved)));
     }
 
     // GET ALL VENDORS
-    public ResponseEntity<List<VendorDTO>> getAllVendors() {
-        try {
-            List<VendorDTO> dtos = vendorRepo.findAll()
-                    .stream()
-                    .map(vendorMapper::toDto)
-                    .collect(Collectors.toList());
-            return new ResponseEntity<>(dtos, HttpStatus.OK);
-        } catch (Exception e) {
-            log.error("Error fetching vendors", e);
-            return new ResponseEntity<>((HttpHeaders) null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<ApiResponse<List<VendorDTO>>> getAllVendors() {
+        List<VendorDTO> dtos = vendorRepo.findAll()
+                .stream()
+                .map(vendorMapper::toDto)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(ApiResponse.success("All vendors fetched successfully", dtos));
     }
 
-    // GET VENDOR BY ID
-    public ResponseEntity<VendorDTO> getVendorById(Long id) {
-        log.info("Fetching vendor with id {}", id);
-        Optional<Vendor> vendorOpt = vendorRepo.findById(id);
-
-        return vendorOpt
-                .map(vendor -> new ResponseEntity<>(vendorMapper.toDto(vendor), HttpStatus.OK))
-                .orElseGet(() -> {
-                    log.warn("Vendor not found with id {}", id);
-                    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-                });
+    // GET BY ID
+    public ResponseEntity<ApiResponse<VendorDTO>> getVendorById(Long id) {
+        return vendorRepo.findById(id)
+                .map(vendor -> ResponseEntity.ok(
+                        ApiResponse.success("Vendor fetched successfully", vendorMapper.toDto(vendor))
+                ))
+                .orElseGet(() -> ResponseEntity.status(404)
+                        .body(ApiResponse.failure("Vendor not found")));
     }
 
-    // UPDATE VENDOR
-    public ResponseEntity<VendorDTO> updateVendor(Long id, VendorDTO dto) {
-        log.info("Updating vendor with id {}", id);
+    // UPDATE VENDOR (manual simple update)
+    public ResponseEntity<ApiResponse<VendorDTO>> updateVendor(Long id, VendorDTO dto) {
         Optional<Vendor> vendorOpt = vendorRepo.findById(id);
 
         if (vendorOpt.isPresent()) {
-            try {
-                Vendor vendor = vendorOpt.get();
-                vendorMapper.updateVendorFromDto(dto, vendor);
-                Vendor updated = vendorRepo.save(vendor);
-                return new ResponseEntity<>(vendorMapper.toDto(updated), HttpStatus.OK);
-            } catch (Exception e) {
-                log.error("Failed to update vendor with id {}", id, e);
-                return new ResponseEntity<>((HttpHeaders) null, HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-        } else {
-            log.warn("Vendor not found with id {}", id);
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            Vendor vendor = vendorOpt.get();
+            // Simple manual update
+            vendor.setName(dto.getName());
+            vendor.setEmail(dto.getEmail());
+            Vendor updated = vendorRepo.save(vendor);
+            return ResponseEntity.ok(ApiResponse.success("Vendor updated successfully", vendorMapper.toDto(updated)));
         }
+
+        return ResponseEntity.status(404).body(ApiResponse.failure("Vendor not found"));
     }
 
-    // DELETE VENDOR
-    public ResponseEntity<String> deleteVendor(Long id) {
-        log.info("Deleting vendor with id {}", id);
+    // DELETE
+    public ResponseEntity<ApiResponse<String>> deleteVendor(Long id) {
         Optional<Vendor> vendorOpt = vendorRepo.findById(id);
 
         if (vendorOpt.isPresent()) {
-            try {
-                vendorRepo.deleteById(id);
-                return new ResponseEntity<>("Vendor deleted successfully", HttpStatus.OK);
-            } catch (Exception e) {
-                log.error("Error deleting vendor with id {}", id, e);
-                return new ResponseEntity<>("Failed to delete vendor", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-        } else {
-            log.warn("Vendor not found with id {}", id);
-            return new ResponseEntity<>("Vendor not found", HttpStatus.NOT_FOUND);
+            vendorRepo.deleteById(id);
+            return ResponseEntity.ok(ApiResponse.success("Vendor deleted successfully", null));
         }
+
+        return ResponseEntity.status(404).body(ApiResponse.failure("Vendor not found"));
     }
 }

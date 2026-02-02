@@ -1,12 +1,13 @@
 package com.pomanagement.purchaseordermanagement.service;
 
 import com.pomanagement.purchaseordermanagement.dto.ProductDTO;
-import com.pomanagement.purchaseordermanagement.entity.Product;
+import com.pomanagement.purchaseordermanagement.entity.Product; // <-- Add this
 import com.pomanagement.purchaseordermanagement.mapper.ProductMapper;
 import com.pomanagement.purchaseordermanagement.repository.ProductRepo;
+import com.pomanagement.purchaseordermanagement.response.ApiResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -16,83 +17,60 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class ProductService {
 
-    @Autowired
-    private ProductRepo productRepo;
+    private final ProductRepo productRepo;
+    private final ProductMapper productMapper;
 
-    @Autowired
-    private ProductMapper productMapper;
-
-    // CREATE PRODUCT
-    public ResponseEntity<ProductDTO> createProduct(ProductDTO dto) {
-        try {
-            log.info("Creating product {}", dto.getName());
-            Product product = productMapper.toEntity(dto);
-            Product saved = productRepo.save(product);
-            return new ResponseEntity<>(productMapper.toDTO(saved), HttpStatus.CREATED);
-        } catch (Exception e) {
-            log.error("Error while creating product", e);
-            return new ResponseEntity<>((HttpHeaders) null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    // CREATE
+    public ResponseEntity<ApiResponse<ProductDTO>> createProduct(ProductDTO dto) {
+        Product saved = productRepo.save(productMapper.toEntity(dto));
+        return ResponseEntity.ok(ApiResponse.success("Product created", productMapper.toDTO(saved)));
     }
 
-    // GET ALL PRODUCTS
-    public ResponseEntity<List<ProductDTO>> getAll() {
-        try {
-            log.info("Fetching all products");
-            List<ProductDTO> dtos = productRepo.findAll()
-                    .stream()
-                    .map(productMapper::toDTO)
-                    .collect(Collectors.toList());
-            return new ResponseEntity<>(dtos, HttpStatus.OK);
-        } catch (Exception e) {
-            log.error("Error while fetching products", e);
-            return new ResponseEntity<>((HttpHeaders) null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    // GET ALL
+    public ResponseEntity<ApiResponse<List<ProductDTO>>> getAll() {
+        List<ProductDTO> list = productRepo.findAll().stream()
+                .map(productMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success("Products fetched", list));
     }
 
-    // GET PRODUCT BY ID
-    public ResponseEntity<ProductDTO> getById(Long id) {
-        log.info("Fetching product with id {}", id);
-        Optional<Product> optionalProduct = productRepo.findById(id);
-
-        return optionalProduct
-                .map(product -> new ResponseEntity<>(productMapper.toDTO(product), HttpStatus.OK))
-                .orElseGet(() -> {
-                    log.warn("Product not found with id {}", id);
-                    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-                });
+    // GET BY ID
+    public ResponseEntity<ApiResponse<ProductDTO>> getById(Long id) {
+        return productRepo.findById(id)
+                .map(product -> ResponseEntity.ok(ApiResponse.success("Product fetched", productMapper.toDTO(product))))
+                .orElseGet(() -> ResponseEntity.ok(ApiResponse.failure("Product not found")));
     }
 
-    // UPDATE PRODUCT
-    public ResponseEntity<ProductDTO> updateProduct(Long id, ProductDTO dto) {
+    // DELETE
+    public ResponseEntity<ApiResponse<Object>> deleteProduct(Long id) {
+        return productRepo.findById(id)
+                .map(product -> {
+                    productRepo.delete(product);
+                    return ResponseEntity.ok(ApiResponse.success("Product deleted", null));
+                })
+                .orElseGet(() -> ResponseEntity.ok(ApiResponse.failure("Product not found")));
+    }
+
+
+    public ResponseEntity<ApiResponse<ProductDTO>> updateProduct(Long id, ProductDTO dto) {
         log.info("Updating product with id {}", id);
         Optional<Product> optionalProduct = productRepo.findById(id);
-
-        if (optionalProduct.isPresent()) {
-            Product product = optionalProduct.get();
-            productMapper.updateProductFromDto(dto, product);
-            Product updated = productRepo.save(product);
-            return new ResponseEntity<>(productMapper.toDTO(updated), HttpStatus.OK);
-        } else {
+        if (optionalProduct.isEmpty()) {
             log.warn("Product not found with id {}", id);
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.failure("Product not found"));
         }
+        Product product = optionalProduct.get();
+        product.setName(dto.getName());
+        product.setPrice(dto.getPrice());
+        Product updated = productRepo.save(product);
+        return ResponseEntity.ok(
+                ApiResponse.success("Product updated successfully", productMapper.toDTO(updated))
+        );
     }
 
-    // DELETE PRODUCT
-    public ResponseEntity<String> deleteProduct(Long id) {
-        log.info("Deleting product with id {}", id);
-        Optional<Product> optionalProduct = productRepo.findById(id);
-
-        if (optionalProduct.isPresent()) {
-            productRepo.deleteById(id);
-            return new ResponseEntity<>("Product deleted successfully", HttpStatus.OK);
-        } else {
-            log.warn("Product not found with id {}", id);
-            return new ResponseEntity<>("Product not found", HttpStatus.NOT_FOUND);
-        }
-    }
 }

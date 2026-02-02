@@ -4,10 +4,10 @@ import com.pomanagement.purchaseordermanagement.dto.EmployeeDTO;
 import com.pomanagement.purchaseordermanagement.entity.Employee;
 import com.pomanagement.purchaseordermanagement.mapper.EmployeeMapper;
 import com.pomanagement.purchaseordermanagement.repository.EmployeeRepo;
+import com.pomanagement.purchaseordermanagement.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -26,74 +26,102 @@ public class EmployeeService {
     @Autowired
     private EmployeeMapper employeeMapper;
 
-    // CREATE
-    public ResponseEntity<EmployeeDTO> createEmployee(@Valid Employee dto) {
+
+    // CREATE EMPLOYEE
+    public ResponseEntity<ApiResponse<EmployeeDTO>> createEmployee(@Valid Employee dto) {
         try {
-            log.info("Creating employee {}", dto.getName());
-            Employee employee = employeeMapper.toEntity(dto);
-            Employee saved = employeeRepo.save(employee);
-            return new ResponseEntity<>(employeeMapper.toDto(saved), HttpStatus.CREATED);
+            log.info("Creating employee: {}", dto.getName());
+
+            Employee saved = employeeRepo.save(employeeMapper.toEntity(dto));
+
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Employee created successfully",
+                            employeeMapper.toDto(saved)));
+
         } catch (Exception e) {
-            log.error("Error while creating employee", e);
-            return new ResponseEntity<>((HttpHeaders) null, HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("Error creating employee", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.failure("Failed to create employee"));
         }
     }
 
-    // READ ALL
-    public ResponseEntity<List<EmployeeDTO>> getAll() {
+
+    // GET ALL EMPLOYEES
+    public ResponseEntity<ApiResponse<List<EmployeeDTO>>> getAll() {
         try {
             log.info("Fetching all employees");
+
             List<EmployeeDTO> dtos = employeeRepo.findAll()
                     .stream()
                     .map(employeeMapper::toDto)
                     .collect(Collectors.toList());
-            return new ResponseEntity<>(dtos, HttpStatus.OK);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("All employees fetched successfully", dtos)
+            );
+
         } catch (Exception e) {
-            log.error("Error while fetching employees", e);
-            return new ResponseEntity<>((HttpHeaders) null, HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("Error fetching employees", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.failure("Failed to fetch employees"));
         }
     }
 
-    // READ BY ID
-    public ResponseEntity<EmployeeDTO> getEmp(Long id) {
-        log.info("Fetching employee with id {}", id);
-        Optional<Employee> optionalEmployee = employeeRepo.findById(id);
 
-        return optionalEmployee
-                .map(employee -> new ResponseEntity<>(employeeMapper.toDto(employee), HttpStatus.OK))
-                .orElseGet(() -> {
-                    log.warn("Employee not found with id {}", id);
-                    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-                });
+    // GET EMPLOYEE BY ID
+    public ResponseEntity<ApiResponse<EmployeeDTO>> getEmp(Long id) {
+        Optional<Employee> found = employeeRepo.findById(id);
+
+        if (found.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.failure("Employee not found"));
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Employee found",
+                        employeeMapper.toDto(found.get()))
+        );
     }
 
-    // UPDATE
-    public ResponseEntity<EmployeeDTO> updateEmployee(Long id, EmployeeDTO dto) {
-        log.info("Updating employee with id {}", id);
-        Optional<Employee> optionalEmployee = employeeRepo.findById(id);
 
-        if(optionalEmployee.isPresent()) {
-            Employee employee = optionalEmployee.get();
-            employeeMapper.updateEmployeeFromDto(dto, employee);
-            Employee updated = employeeRepo.save(employee);
-            return new ResponseEntity<>(employeeMapper.toDto(updated), HttpStatus.OK);
-        } else {
-            log.warn("Employee not found with id {}", id);
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    // UPDATE EMPLOYEE (SIMPLE VERSION — NO MAPSTRUCT UPDATE)
+    public ResponseEntity<ApiResponse<EmployeeDTO>> updateEmployee(Long id, EmployeeDTO dto) {
+
+        Optional<Employee> found = employeeRepo.findById(id);
+
+        if (found.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.failure("Employee not found"));
         }
+
+        Employee employee = found.get();
+
+        // SIMPLE MANUAL UPDATE
+        employee.setName(dto.getName());
+        employee.setEmail(dto.getEmail());
+
+        Employee updated = employeeRepo.save(employee);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Employee updated successfully",
+                        employeeMapper.toDto(updated))
+        );
     }
 
-    // DELETE
-    public ResponseEntity<String> deleteEmp(Long id) {
-        log.info("Deleting employee with id {}", id);
-        Optional<Employee> optionalEmployee = employeeRepo.findById(id);
 
-        if(optionalEmployee.isPresent()) {
-            employeeRepo.deleteById(id);
-            return new ResponseEntity<>("Employee deleted successfully", HttpStatus.OK);
-        } else {
-            log.warn("Employee not found with id {}", id);
-            return new ResponseEntity<>("Employee not found", HttpStatus.NOT_FOUND);
+    // DELETE EMPLOYEE
+    public ResponseEntity<ApiResponse<Object>> deleteEmp(Long id) {
+        Optional<Employee> found = employeeRepo.findById(id);
+
+        if (found.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.failure("Employee not found"));
         }
+
+        employeeRepo.deleteById(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Employee deleted successfully", null)
+        );
     }
 }

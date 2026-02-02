@@ -8,7 +8,7 @@ import org.mapstruct.factory.Mappers;
 @Mapper(componentModel = "spring")
 public interface PaymentDetailsMapper {
 
-    PaymentDetailsMapper INSTANCE = Mappers.getMapper(PaymentDetailsMapper.class);
+
 
     PaymentDetailsDTO toDTO(PaymentDetails paymentDetails);
 

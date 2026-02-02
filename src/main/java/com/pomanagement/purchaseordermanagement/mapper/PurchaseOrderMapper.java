@@ -14,38 +14,16 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 @Mapper(componentModel = "spring")
 public interface PurchaseOrderMapper {
 
-    @Mapping(source = "employeeId", target = "employee", qualifiedByName = "employeeById")
-    @Mapping(source = "vendorId", target = "vendor", qualifiedByName = "vendorById")
-    @Mapping(source = "productIds", target = "products", qualifiedByName = "productsByIds")
-    PurchaseOrder toEntity(
-            PurchaseOrderDTO dto,
-            @Context EmployeeRepo employeeRepo,
-            @Context VendorRepo vendorRepo,
-            @Context ProductRepo productRepo
-    );
-
-    @Named("employeeById")
-    default Employee mapEmployee(Long id, @Context EmployeeRepo repo) {
-        return repo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
-    }
-
-    @Named("vendorById")
-    default Vendor mapVendor(Long id, @Context VendorRepo repo) {
-        return repo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
-    }
-
-    @Named("productsByIds")
-    default List<Product> mapProducts(
-            List<Long> ids,
-            @Context ProductRepo repo
-    ) {
-        return repo.findAllById(ids);
-    }
-
-    PurchaseOrderDTO toDTO(PurchaseOrder saved);
+    @Mapping(target = "employeeId", source = "employee.id")
+    @Mapping(target = "vendorId", source = "vendor.id")
+    @Mapping(target = "paymentDetailsId", source = "paymentDetails.id")
+    @Mapping(target = "productIds", expression = "java(po.getProducts().stream().map(p -> p.getId()).collect(java.util.stream.Collectors.toList()))")
+    PurchaseOrderDTO toDTO(PurchaseOrder po);
+    PurchaseOrder toEntity(PurchaseOrderDTO dto, EmployeeRepo employeeRepo, VendorRepo vendorRepo, ProductRepo productRepo);
 }

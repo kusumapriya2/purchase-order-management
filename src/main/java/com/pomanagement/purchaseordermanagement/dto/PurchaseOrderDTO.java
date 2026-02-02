@@ -18,7 +18,7 @@ public class PurchaseOrderDTO {
     @NotEmpty(message = "At least one product is required")
     private List<Long> productIds;
     private String status;
-
+    @NotNull(message = "payment details should not be null")
     private Long paymentDetailsId;
 
 }
