@@ -1,5 +1,6 @@
 package com.pomanagement.purchaseordermanagement.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -13,14 +14,17 @@ public class PurchaseOrder {
     private Long id;
 
     @ManyToOne
+
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
     @ManyToOne
+
     @JoinColumn(name = "vendor_id")
     private Vendor vendor;
 
     @ManyToMany
+    @JsonIgnore
     @JoinTable(
             name = "po_products",
             joinColumns = @JoinColumn(name = "po_id"),
@@ -28,5 +32,10 @@ public class PurchaseOrder {
     )
     private List<Product> products;
 
-    private String status; // CREATED, APPROVED, CANCELLED
+    private String status;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "payment_id")
+    private PaymentDetails paymentDetails;
+
 }

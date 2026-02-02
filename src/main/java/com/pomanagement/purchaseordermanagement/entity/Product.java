@@ -1,5 +1,6 @@
 package com.pomanagement.purchaseordermanagement.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 @Data
@@ -11,4 +12,7 @@ public class Product {
     private Long id;
     private String name;
     private Double price;
+    @ManyToMany(mappedBy = "products")
+    @JsonIgnore
+    private java.util.List<PurchaseOrder> purchaseOrders;
 }
