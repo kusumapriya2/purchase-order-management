@@ -17,17 +17,17 @@ public class EmployeeController {
     @Autowired EmployeeService employeeService;
 
     @PostMapping("/create")
-    public ResponseEntity<Employee> createEmp(@RequestBody @Valid Employee employee){
+    public ResponseEntity<ResponseEntity<EmployeeDTO>> createEmp(@RequestBody @Valid Employee employee){
         return new ResponseEntity<>(employeeService.createEmployee(employee), HttpStatus.CREATED);
     }
 
     @GetMapping("/all")
     public ResponseEntity<List<Employee>> getAll(){
-        return ResponseEntity.ok(employeeService.getAll());
+        return ResponseEntity.ok((List<Employee>) employeeService.getAll());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Employee> getById(@PathVariable Long id){
+    public ResponseEntity<ResponseEntity<EmployeeDTO>> getById(@PathVariable Long id){
         return ResponseEntity.ok(employeeService.getEmp(id));
     }
     @PutMapping("/update/{id}")
@@ -35,7 +35,7 @@ public class EmployeeController {
             @PathVariable Long id,@Valid
             @RequestBody EmployeeDTO dto
     ) {
-        return employeeService.updateEmployee(id, dto);
+        return employeeService.updateEmployee(id, dto).getBody();
     }
 
     @DeleteMapping("/delete/{id}")

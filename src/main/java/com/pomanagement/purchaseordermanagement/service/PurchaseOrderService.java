@@ -1,20 +1,18 @@
 package com.pomanagement.purchaseordermanagement.service;
 
 import com.pomanagement.purchaseordermanagement.dto.PurchaseOrderDTO;
+import com.pomanagement.purchaseordermanagement.entity.PaymentDetails;
 import com.pomanagement.purchaseordermanagement.entity.PurchaseOrder;
 import com.pomanagement.purchaseordermanagement.mapper.PurchaseOrderMapper;
-import com.pomanagement.purchaseordermanagement.repository.EmployeeRepo;
-import com.pomanagement.purchaseordermanagement.repository.ProductRepo;
-import com.pomanagement.purchaseordermanagement.repository.PurchaseOrderRepo;
-import com.pomanagement.purchaseordermanagement.repository.VendorRepo;
-
+import com.pomanagement.purchaseordermanagement.repository.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-
 import java.util.List;
+import java.util.Optional;
+
 @Service
 @Slf4j
 public class PurchaseOrderService {
@@ -24,66 +22,84 @@ public class PurchaseOrderService {
     @Autowired private EmployeeRepo employeeRepo;
     @Autowired private VendorRepo vendorRepo;
     @Autowired private ProductRepo productRepo;
+    @Autowired private PaymentDetailsRepo paymentDetailsRepo;
 
-
-    public PurchaseOrder createPO(PurchaseOrderDTO dto) {
+    // CREATE
+    public ResponseEntity<PurchaseOrder> createPO(PurchaseOrderDTO dto) {
         try {
             log.info("Creating Purchase Order");
 
-            PurchaseOrder po = mapper.toEntity(
-                    dto, employeeRepo, vendorRepo, productRepo
-            );
+            PurchaseOrder po = mapper.toEntity(dto, employeeRepo, vendorRepo, productRepo);
+
+            if (dto.getPaymentDetailsId() != null) {
+                PaymentDetails pd = paymentDetailsRepo.findById(dto.getPaymentDetailsId())
+                        .orElseThrow(() -> new RuntimeException("PaymentDetails not found"));
+                po.setPaymentDetails(pd);
+            }
+
             po.setStatus("CREATED");
+            PurchaseOrder saved = poRepo.save(po);
 
-            return poRepo.save(po);
-
+            return ResponseEntity.status(201).body(saved);
         } catch (Exception e) {
             log.error("Error creating PO", e);
-            throw new RuntimeException("PO creation failed");
+            return ResponseEntity.internalServerError().build();
         }
     }
 
-    public PurchaseOrder getPO(Long id) {
-        try {
-            return poRepo.findById(id)
-                    .orElseThrow(() -> new RuntimeException("PO not found"));
-        } catch (Exception e) {
-            log.error("Error fetching PO {}", id, e);
-            throw e;
+    // READ BY ID
+    public ResponseEntity<PurchaseOrder> getPO(Long id) {
+        Optional<PurchaseOrder> po = poRepo.findById(id);
+        return po.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(404).build());
+    }
+
+    // READ ALL
+    public ResponseEntity<List<PurchaseOrder>> getAllPOs() {
+        List<PurchaseOrder> list = poRepo.findAll();
+        return ResponseEntity.ok(list);
+    }
+
+    // UPDATE
+    public ResponseEntity<PurchaseOrder> updatePO(Long id, PurchaseOrderDTO dto) {
+        Optional<PurchaseOrder> existingOpt = poRepo.findById(id);
+
+        if (existingOpt.isEmpty()) {
+            return ResponseEntity.status(404).build();
         }
-    }
 
-
-    public List<PurchaseOrder> getAllPOs() {
-        return poRepo.findAll();
-    }
-
-
-    public PurchaseOrder updatePO(Long id, PurchaseOrderDTO dto) {
         try {
-            PurchaseOrder existing = getPO(id);
+            PurchaseOrder updated = mapper.toEntity(dto, employeeRepo, vendorRepo, productRepo);
+            updated.setId(existingOpt.get().getId());
 
-            PurchaseOrder updated = mapper.toEntity(
-                    dto, employeeRepo, vendorRepo, productRepo
-            );
-            updated.setId(existing.getId());
+            if (dto.getPaymentDetailsId() != null) {
+                PaymentDetails pd = paymentDetailsRepo.findById(dto.getPaymentDetailsId())
+                        .orElseThrow(() -> new RuntimeException("PaymentDetails not found"));
+                updated.setPaymentDetails(pd);
+            }
 
-            return poRepo.save(updated);
-
+            PurchaseOrder saved = poRepo.save(updated);
+            return ResponseEntity.ok(saved);
         } catch (Exception e) {
             log.error("Error updating PO {}", id, e);
-            throw new RuntimeException("Update failed");
+            return ResponseEntity.internalServerError().build();
         }
     }
 
+    // DELETE
+    public ResponseEntity<String> deletePO(Long id) {
+        Optional<PurchaseOrder> existingOpt = poRepo.findById(id);
 
-    public void deletePO(Long id) {
+        if (existingOpt.isEmpty()) {
+            return ResponseEntity.status(404).body("PO not found");
+        }
+
         try {
             poRepo.deleteById(id);
-            log.info("PO deleted: {}", id);
+            return ResponseEntity.ok("PO deleted successfully");
         } catch (Exception e) {
-            log.error("Delete failed {}", id, e);
-            throw new RuntimeException("Delete failed");
+            log.error("Error deleting PO {}", id, e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

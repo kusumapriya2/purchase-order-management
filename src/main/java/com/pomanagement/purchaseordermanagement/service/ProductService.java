@@ -6,70 +6,93 @@ import com.pomanagement.purchaseordermanagement.mapper.ProductMapper;
 import com.pomanagement.purchaseordermanagement.repository.ProductRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class ProductService {
-    @Autowired ProductRepo productRepo;
-    @Autowired ProductMapper productMapper;
 
-    public ResponseEntity<ProductDTO> createProduct(ProductDTO dto){
+    @Autowired
+    private ProductRepo productRepo;
+
+    @Autowired
+    private ProductMapper productMapper;
+
+    // CREATE PRODUCT
+    public ResponseEntity<ProductDTO> createProduct(ProductDTO dto) {
         try {
-            log.info("product creating {}",dto.getName());
-            Product product=productMapper.toEntity(dto);
-            Product saved=productRepo.save(product);
-            return ResponseEntity.ok(productMapper.toDTO(saved));
+            log.info("Creating product {}", dto.getName());
+            Product product = productMapper.toEntity(dto);
+            Product saved = productRepo.save(product);
+            return new ResponseEntity<>(productMapper.toDTO(saved), HttpStatus.CREATED);
         } catch (Exception e) {
-            log.error("error while creating product",e);
-            return ResponseEntity.internalServerError().build();
+            log.error("Error while creating product", e);
+            return new ResponseEntity<>((HttpHeaders) null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    public ResponseEntity<List<ProductDTO>> getAll(){
-        try{
-            List<Product> products = productRepo.findAll();
-            return ResponseEntity.ok(productMapper.toDtoList(products));
+
+    // GET ALL PRODUCTS
+    public ResponseEntity<List<ProductDTO>> getAll() {
+        try {
+            log.info("Fetching all products");
+            List<ProductDTO> dtos = productRepo.findAll()
+                    .stream()
+                    .map(productMapper::toDTO)
+                    .collect(Collectors.toList());
+            return new ResponseEntity<>(dtos, HttpStatus.OK);
         } catch (Exception e) {
-            log.error("error while fetching products",e);
-            return ResponseEntity.internalServerError().build();
+            log.error("Error while fetching products", e);
+            return new ResponseEntity<>((HttpHeaders) null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    public ResponseEntity<ProductDTO> getById(Long id){
-        try{
-            Product product=productRepo.findById(id)
-                    .orElseThrow(()-> new RuntimeException("product not found"));
-            return ResponseEntity.ok(productMapper.toDTO(product));
-        } catch (Exception e) {
-            log.error("error while fetching product",e);
-            return ResponseEntity.notFound().build();
-        }
+
+    // GET PRODUCT BY ID
+    public ResponseEntity<ProductDTO> getById(Long id) {
+        log.info("Fetching product with id {}", id);
+        Optional<Product> optionalProduct = productRepo.findById(id);
+
+        return optionalProduct
+                .map(product -> new ResponseEntity<>(productMapper.toDTO(product), HttpStatus.OK))
+                .orElseGet(() -> {
+                    log.warn("Product not found with id {}", id);
+                    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                });
     }
+
+    // UPDATE PRODUCT
     public ResponseEntity<ProductDTO> updateProduct(Long id, ProductDTO dto) {
-        try {
-            log.info("Updating product with id {}", id);
-            Product product = productRepo.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
+        log.info("Updating product with id {}", id);
+        Optional<Product> optionalProduct = productRepo.findById(id);
 
+        if (optionalProduct.isPresent()) {
+            Product product = optionalProduct.get();
             productMapper.updateProductFromDto(dto, product);
             Product updated = productRepo.save(product);
-
-            return ResponseEntity.ok(productMapper.toDTO(updated));
-        } catch (Exception e) {
-            log.error("Failed to update product with id {}", id, e);
-            return ResponseEntity.internalServerError().build();
+            return new ResponseEntity<>(productMapper.toDTO(updated), HttpStatus.OK);
+        } else {
+            log.warn("Product not found with id {}", id);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
-        public ResponseEntity<String> deleteProduct(Long id) {
-            try {
-                log.info("Deleting product with id {}", id);
-                productRepo.deleteById(id);
-                return ResponseEntity.ok("deleted successfully");
-            } catch (Exception e) {
-                log.error("Error deleting product with id {}", id, e);
-                return ResponseEntity.internalServerError().build();
-            }
+
+    // DELETE PRODUCT
+    public ResponseEntity<String> deleteProduct(Long id) {
+        log.info("Deleting product with id {}", id);
+        Optional<Product> optionalProduct = productRepo.findById(id);
+
+        if (optionalProduct.isPresent()) {
+            productRepo.deleteById(id);
+            return new ResponseEntity<>("Product deleted successfully", HttpStatus.OK);
+        } else {
+            log.warn("Product not found with id {}", id);
+            return new ResponseEntity<>("Product not found", HttpStatus.NOT_FOUND);
+        }
     }
 }

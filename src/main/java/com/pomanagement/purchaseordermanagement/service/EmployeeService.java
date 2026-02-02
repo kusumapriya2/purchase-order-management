@@ -4,12 +4,18 @@ import com.pomanagement.purchaseordermanagement.dto.EmployeeDTO;
 import com.pomanagement.purchaseordermanagement.entity.Employee;
 import com.pomanagement.purchaseordermanagement.mapper.EmployeeMapper;
 import com.pomanagement.purchaseordermanagement.repository.EmployeeRepo;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 @Service
 @Slf4j
 public class EmployeeService {
@@ -20,54 +26,74 @@ public class EmployeeService {
     @Autowired
     private EmployeeMapper employeeMapper;
 
-    public Employee createEmployee(Employee employee) {
+    // CREATE
+    public ResponseEntity<EmployeeDTO> createEmployee(@Valid Employee dto) {
         try {
-            log.info("Creating employee {}", employee.getName());
-            return employeeRepo.save(employee);
+            log.info("Creating employee {}", dto.getName());
+            Employee employee = employeeMapper.toEntity(dto);
+            Employee saved = employeeRepo.save(employee);
+            return new ResponseEntity<>(employeeMapper.toDto(saved), HttpStatus.CREATED);
         } catch (Exception e) {
             log.error("Error while creating employee", e);
-            throw new RuntimeException("Employee creation failed");
+            return new ResponseEntity<>((HttpHeaders) null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    public List<Employee> getAll() {
+    // READ ALL
+    public ResponseEntity<List<EmployeeDTO>> getAll() {
         try {
             log.info("Fetching all employees");
-            return employeeRepo.findAll();
+            List<EmployeeDTO> dtos = employeeRepo.findAll()
+                    .stream()
+                    .map(employeeMapper::toDto)
+                    .collect(Collectors.toList());
+            return new ResponseEntity<>(dtos, HttpStatus.OK);
         } catch (Exception e) {
             log.error("Error while fetching employees", e);
-            throw new RuntimeException("Failed to fetch employees");
+            return new ResponseEntity<>((HttpHeaders) null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    public Employee getEmp(Long id) {
-        try {
-            log.info("Fetching employee with id {}", id);
-            return employeeRepo.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Employee not found"));
-        } catch (Exception e) {
-            log.error("Error while fetching employee with id {}", id, e);
-            throw e;
-        }
+    // READ BY ID
+    public ResponseEntity<EmployeeDTO> getEmp(Long id) {
+        log.info("Fetching employee with id {}", id);
+        Optional<Employee> optionalEmployee = employeeRepo.findById(id);
+
+        return optionalEmployee
+                .map(employee -> new ResponseEntity<>(employeeMapper.toDto(employee), HttpStatus.OK))
+                .orElseGet(() -> {
+                    log.warn("Employee not found with id {}", id);
+                    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                });
     }
 
-    public EmployeeDTO updateEmployee(Long id, EmployeeDTO dto) {
+    // UPDATE
+    public ResponseEntity<EmployeeDTO> updateEmployee(Long id, EmployeeDTO dto) {
         log.info("Updating employee with id {}", id);
-        Employee employee = employeeRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
-        employeeMapper.updateEmployeeFromDto(dto, employee);
-        Employee updated = employeeRepo.save(employee);
-        return employeeMapper.toDto(updated);
+        Optional<Employee> optionalEmployee = employeeRepo.findById(id);
+
+        if(optionalEmployee.isPresent()) {
+            Employee employee = optionalEmployee.get();
+            employeeMapper.updateEmployeeFromDto(dto, employee);
+            Employee updated = employeeRepo.save(employee);
+            return new ResponseEntity<>(employeeMapper.toDto(updated), HttpStatus.OK);
+        } else {
+            log.warn("Employee not found with id {}", id);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
+    // DELETE
+    public ResponseEntity<String> deleteEmp(Long id) {
+        log.info("Deleting employee with id {}", id);
+        Optional<Employee> optionalEmployee = employeeRepo.findById(id);
 
-    public void deleteEmp(Long id) {
-        try {
-            log.info("Deleting employee with id {}", id);
+        if(optionalEmployee.isPresent()) {
             employeeRepo.deleteById(id);
-        } catch (Exception e) {
-            log.error("Error while deleting employee", e);
-            throw new RuntimeException("Failed to delete employee");
+            return new ResponseEntity<>("Employee deleted successfully", HttpStatus.OK);
+        } else {
+            log.warn("Employee not found with id {}", id);
+            return new ResponseEntity<>("Employee not found", HttpStatus.NOT_FOUND);
         }
     }
 }

@@ -46,4 +46,6 @@ public interface PurchaseOrderMapper {
     ) {
         return repo.findAllById(ids);
     }
+
+    PurchaseOrderDTO toDTO(PurchaseOrder saved);
 }

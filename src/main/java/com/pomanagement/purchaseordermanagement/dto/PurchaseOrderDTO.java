@@ -18,4 +18,7 @@ public class PurchaseOrderDTO {
     @NotEmpty(message = "At least one product is required")
     private List<Long> productIds;
     private String status;
+
+    private Long paymentDetailsId;
+
 }
