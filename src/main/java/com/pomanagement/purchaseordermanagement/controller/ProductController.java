@@ -14,7 +14,6 @@ import org.springframework.http.ResponseEntity;@RestController
 @RequiredArgsConstructor
 public class ProductController {
 
-    @Autowired
     private final ProductService productService;
 
     @PostMapping("/create")
@@ -34,7 +33,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductDTO> updateProduct(
+    public ResponseEntity<ApiResponse<ProductDTO>> updateProduct(
             @PathVariable Long id,
             @RequestBody @Valid ProductDTO dto) {
         return productService.updateProduct(id, dto);
