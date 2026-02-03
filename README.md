@@ -95,6 +95,11 @@ This project follows **industry-level Spring Boot best practices**.
 - Add multiple products
 - Track order status
 
+### 🧾 Payment Details
+- Create payment details
+- Assign transactionId and paymentMethod
+- Add details
+
 ---
 
 ## 🔁 Entity Relationships
@@ -102,6 +107,7 @@ This project follows **industry-level Spring Boot best practices**.
 - **Employee → PurchaseOrder** → One-to-Many
 - **Vendor → PurchaseOrder** → One-to-Many
 - **PurchaseOrder → Product** → Many-to-Many
+- **PurchaseOrder → PaymentDetails** → One-to-One
 
 ---
 
